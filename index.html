@@ -144,6 +144,22 @@
     padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px}
   .peer:last-child{border:0}
   .peer .meta{color:var(--dim);font-size:12px}
+  /* drapeaux : Windows n'a pas de glyphes emoji de drapeaux, on passe par des images */
+  img.flag{height:1.05em;width:auto;vertical-align:-.16em;border-radius:2px;
+    box-shadow:0 0 0 1px rgba(255,255,255,.12);background:var(--panel2)}
+  .chead img.flag{height:1.5em;vertical-align:-.3em}
+  /* PAS de font-size:0 ici : la solution de repli doit rester visible
+     si l'image ne se charge pas (hors ligne, bloqueur, aperçu sandboxé). */
+  .qflag{font-size:54px;line-height:1.15;margin:6px 0 10px}
+  .qflag img.flag{height:auto;width:190px;max-width:70%;border-radius:5px;vertical-align:middle;
+    box-shadow:0 2px 14px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.14)}
+  @media(max-width:560px){.qflag{font-size:40px}.qflag img.flag{width:150px}}
+  /* repli : emoji + code pays, toujours visible */
+  .flagfb{display:inline-block;padding:0 .22em;border-radius:3px;
+    background:var(--panel2);box-shadow:0 0 0 1px rgba(255,255,255,.12);font-size:1em}
+  .flagfb .cc{font-size:.42em;color:var(--dim);letter-spacing:.06em;
+    font-weight:700;vertical-align:.35em;margin-left:.12em}
+  .cbody .flagfb,.chead .flagfb,.weak .flagfb,.err .flagfb{font-size:1em}
 </style>
 </head>
 <body>
@@ -454,6 +470,126 @@ const DATA = [
 ];
 
 /* ============================================================
+   XT — ce qui trahit précisément le texte affiché.
+   Affiché en explication après chaque question « Écriture → pays ».
+   ============================================================ */
+const XT = {
+"États-Unis":"Abréviations « St / Ave / Blvd » précédées d'un préfixe directionnel (W, N, E, S) : signature nord-américaine.",
+"Russie":"Cyrillique SANS aucun і, et « улица » (ou « ул. ») pour rue. Si tu vois un і, ce n'est pas la Russie.",
+"Brésil":"« Rua » + article « das » → portugais. L'espagnol dirait « Calle ».",
+"Japon":"Kanji avec le motif « 号線 » (numéro de route nationale). Les kana ronds ひ ou anguleux カ confirment le Japon.",
+"France":"« Rue de la… » — la construction avec article est typiquement française.",
+"Australie":"Anglais neutre type « Main Street », à croiser avec la conduite à gauche et les eucalyptus.",
+"Indonésie":"« Jalan » = rue en indonésien et en malais. « Merdeka » (liberté) est très fréquent en Indonésie.",
+"Afrique du Sud":"Afrikaans « Straat » détaché en deux mots — le néerlandais l'écrit collé (« Kerkstraat »).",
+"Canada":"Panneau bilingue avec « Rue » avant le nom et l'anglais à côté : combinaison canadienne.",
+"Royaume-Uni":"« High Street » est la rue commerçante britannique par excellence, quasi inexistante ailleurs.",
+"Espagne":"« Calle » → espagnol. « Mayor » est un nom de rue très courant en Espagne même.",
+"Argentine":"« Avenida » + San Martín, héros national argentin, omniprésent dans le pays.",
+"Mexique":"Juárez, président mexicain : nom de rue quasi systématique au Mexique.",
+"Thaïlande":"Alphabet thaï : boucles et crochets, avec des signes AU-DESSUS de la ligne. « ถนน » = route.",
+"Pologne":"« ul. » abrégé, plus les lettres ś et ł qui n'existent qu'en polonais.",
+"Suède":"« -gatan » collé en suffixe : le suédois suffixe son article défini. Le norvégien dirait « -gata ».",
+"Finlande":"« -tie » (route) collé, mots très longs, doubles voyelles. Pas de å en intérieur de pays.",
+"Italie":"« Via » → italien. Attention : Saint-Marin écrit pareil.",
+"Allemagne":"Le ß de « -straße ». La Suisse écrit « strasse » avec deux s.",
+"Turquie":"« Caddesi » (avenue) avec son suffixe -si. Cherche aussi le ı sans point, le ş et le ğ.",
+"Philippines":"« Barangay » (division administrative) n'existe qu'aux Philippines.",
+"Malaisie":"« Jalan » comme en Indonésie, mais avec les titres royaux malais (Sultan, Tunku, Sri).",
+"Inde":"Devanagari (barre horizontale en haut) DOUBLÉ d'anglais. Le Népal écrit en devanagari seul.",
+"Nouvelle-Zélande":"Anglais + conduite à gauche ; les fougères arborescentes et les poteaux bois fins tranchent.",
+"Chili":"O'Higgins, libérateur du Chili : ce nom est quasi exclusivement chilien.",
+"Pérou":"« Jirón » pour désigner une rue est un mot quasi exclusivement péruvien.",
+"Colombie":"Adressage numéroté « Calle / Carrera » : signature colombienne immédiate.",
+"Norvège":"« -gata » (norvégien) contre « -gatan » (suédois) et « -gade » (danois). Une lettre décide.",
+"Pays-Bas":"« straat » collé en un seul mot. L'afrikaans sud-africain le détache.",
+"Tchéquie":"« Náměstí » (place) contient ě, lettre exclusivement tchèque.",
+"Portugal":"« Rua » comme au Brésil — c'est le décor qui tranche : pavés calcaires, azulejos, pas de tropiques.",
+"Roumanie":"« Strada » + les lettres ș et ț. Eminescu est le poète national roumain.",
+"Ukraine":"« вулиця » et non « улица », plus le і ukrainien. Chevtchenko est le poète national.",
+"Danemark":"« -gaden » : le danois utilise « gade » là où la Norvège dit « gate » et la Suède « gatan ».",
+"Suisse":"« strasse » avec deux s et JAMAIS de ß : c'est le tell suisse contre l'Allemagne.",
+"Autriche":"« Hauptplatz » — « Platz » comme place centrale est très fréquent en Autriche.",
+"Belgique":"Panneau bilingue français / néerlandais sur la même plaque : unique à la Belgique.",
+"Irlande":"L'irlandais (souvent en italique) au-dessus de l'anglais : signature irlandaise absolue.",
+"Grèce":"Alphabet grec — aucun autre pays couvert ne l'utilise.",
+"Hongrie":"« utca » (rue) placé APRÈS le nom, plus les accents doubles ő et ű.",
+"Bulgarie":"Cyrillique « ул. » mais sans ы ni э, et avec ъ utilisé comme voyelle en milieu de mot.",
+"Croatie":"« Ulica » + č ć š ž. Tomislav est un roi croate.",
+"Slovaquie":"« Hlavná » avec á. Le slovaque n'a ni ř ni ě, contrairement au tchèque.",
+"Slovénie":"« cesta » (route) est le marqueur slovène. Le slovène a ž mais pas ć ni đ.",
+"Serbie":"Cyrillique avec љ et ј. Et souvent le même nom répété en latin juste en dessous.",
+"Estonie":"« tänav » (rue) + ä. Ailleurs, le õ est le tell estonien absolu.",
+"Lettonie":"« iela » (rue) + les macrons ī et ā (barres au-dessus des voyelles).",
+"Lituanie":"« prospektas » ou « gatvė », et les terminaisons -as / -is / -o sur les noms propres.",
+"Islande":"« -vegur » collé et mots longs. Ailleurs, þ et ð sont exclusifs à l'islandais.",
+"Israël":"Alphabet hébreu. « רחוב » = rue.",
+"Corée du Sud":"Hangeul : des blocs faits de cercles et de rectangles nettement séparés.",
+"Taïwan":"Chinois traditionnel + « 路 » (route). 中山 (Sun Yat-sen) est omniprésent à Taïwan.",
+"Hong Kong":"Chinois traditionnel ET anglais sur la même plaque, avec « 道 » pour route.",
+"Singapour":"Anglais seul avec une toponymie très britannique. Les tours HDB confirment.",
+"Sri Lanka":"Singhalais tout en boucles rondes, doublé d'anglais.",
+"Cambodge":"Khmer : anguleux, dense, avec des pointes vers le haut. « ផ្លូវ » = rue.",
+"Bangladesh":"Bengali : barre horizontale en haut mais formes triangulaires, plus arrondies en bas que le devanagari.",
+"Kenya":"« Barabara » = route en swahili.",
+"Nigeria":"Anglais avec des noms yoruba ou igbo, et conduite à droite : rare en Afrique anglophone.",
+"Ghana":"Anglais britannique mais conduite à droite — c'est la combinaison qui trahit le pays.",
+"Uruguay":"Les dates utilisées comme noms de rue (« 18 de Julio ») sont très courantes en Uruguay.",
+"Équateur":"Espagnol ; « Amazonas » est un nom de rue très fréquent en Équateur.",
+"Bolivie":"Sucre est la capitale constitutionnelle bolivienne.",
+"Guatemala":"« Calzada » (chaussée) est fréquent en Amérique centrale.",
+"République dominicaine":"Duarte est le père de la nation dominicaine.",
+"Émirats arabes unis":"Arabe avec « شارع » = rue. « الشيخ زايد » (Cheikh Zayed) est spécifiquement émirati.",
+"Albanie":"« Rruga » avec deux R, plus le ë albanais.",
+"Andorre":"Catalan : « Avinguda » et le digramme tx.",
+"Bermudes":"Anglais à toponymie coloniale, conduite à gauche, sur une île de l'Atlantique nord.",
+"Bhoutan":"Écriture tibétaine : lettres empilées verticalement sous une barre.",
+"Botswana":"Anglais ; « Mall » employé pour une rue centrale est un usage botswanais.",
+"Chine":"Chinois simplifié (人民 = peuple) + « 路 ». Simplifié + conduite à droite = Chine continentale.",
+"Costa Rica":"Espagnol totalement générique : ici seul le décor (forêt tropicale humide) tranche.",
+"Curaçao":"Néerlandais « Weg naar » … aux Caraïbes. La combinaison est unique.",
+"Égypte":"Arabe seul, sans anglais à côté.",
+"Eswatini":"Anglais ; à séparer de l'Afrique du Sud par les plaques et les collines très vertes.",
+"Îles Féroé":"« Gøta » avec ø, et des mots très courts.",
+"Gibraltar":"Anglais britannique mais conduite à droite, et le Rocher visible presque partout.",
+"Groenland":"Groenlandais : mots très longs avec des q doublés et des terminaisons en -aq / -suaq.",
+"Guam":"Toponymie militaire américaine (« Marine Corps ») en environnement tropical.",
+"Île de Man":"Anglais ; le triskèle à trois jambes sur les plaques et les panneaux est le tell.",
+"Île Christmas":"Anglais australien, en pleine jungle dense.",
+"Jersey":"Français normand (« La Rue de… ») mais conduite à gauche et panneaux britanniques.",
+"Jordanie":"Arabe + anglais, avec une toponymie religieuse (« المدينة المنورة »).",
+"Kazakhstan":"« көшесі » (rue) plus le і et les lettres à crochets ә ғ қ ұ.",
+"Kirghizistan":"ө et ү sans ә ni қ, avec « проспектиси ».",
+"Laos":"Lao : comme le thaï mais plus rond, plus simple, avec moins de signes au-dessus.",
+"Liban":"Arabe ET français ensemble sur le même panneau.",
+"Lesotho":"Anglais ; les montagnes nues à très haute altitude confirment.",
+"Luxembourg":"Français et luxembourgeois côte à côte (« Stroossen »).",
+"Macao":"Portugais ET chinois traditionnel ensemble : unique au monde.",
+"Madagascar":"« Lalana » = route en malgache.",
+"Malte":"« Triq » pour rue, avec l'article « il- ». Aucun équivalent ailleurs.",
+"Monaco":"Français, mais avec une densité verticale de Riviera et des plaques très courtes.",
+"Mongolie":"« гудамж » (rue) plus ө et ү, dans des mots très longs.",
+"Monténégro":"Latin serbo-croate ; c'est le karst plongeant dans l'Adriatique qui tranche.",
+"Népal":"Devanagari SEUL, sans anglais à côté — c'est ce qui le sépare de l'Inde.",
+"Macédoine du Nord":"Cyrillique avec ѓ et ќ, et sans le doublage latin systématique de la Serbie.",
+"Îles Mariannes du Nord":"Anglais américain en environnement tropical du Pacifique.",
+"Pakistan":"Ourdou en nastaliq : l'écriture part en diagonale, très calligraphique. L'arabe reste horizontal.",
+"Palestine":"Arabe seul ; collines calcaires et réservoirs d'eau noirs sur les toits.",
+"Panama":"Balboa, l'explorateur associé au Panama.",
+"Porto Rico":"Espagnol sur des panneaux de type américain : vitesses en mph, distances en km.",
+"Qatar":"Arabe + anglais, avec « الكورنيش » (Corniche) très qatari.",
+"La Réunion":"Toponymie française métropolitaine en milieu tropical volcanique.",
+"Rwanda":"« Umuhanda » = route en kinyarwanda.",
+"Saint-Marin":"Italien, mais plaques blanches à écusson bleu et le mont Titano qui domine la plaine.",
+"Sénégal":"Français avec des noms wolof (Lamine Guèye, Cheikh Anta Diop).",
+"Tunisie":"Arabe + français ; Bourguiba est le premier président tunisien.",
+"Ouganda":"Anglais avec toponymie locale, et conduite à gauche.",
+"Îles Vierges américaines":"Anglais américain (« Veterans Drive ») mais conduite à gauche : combinaison unique.",
+"Viêt Nam":"« Đường » avec le Đ barré, et des accents empilés sur les voyelles.",
+"Samoa américaines":"Anglais dans le Pacifique, mais conduite à droite contrairement aux voisins."
+};
+
+/* ============================================================
    ÉTAT & STOCKAGE
    ============================================================ */
 const KEY = "geo-trainer-v3";
@@ -466,14 +602,15 @@ const KINDS = ["Écriture → pays","Domaine .xx → pays","Indicatif +xx → pa
   "Côté de conduite","Pays → région","Pays → domaine","Pays → indicatif","Pays → écriture"];
 let S = load();
 
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
 function load(){
   try{
     const raw = localStorage.getItem(KEY);
-    if(!raw) return structuredClone(DEFAULTS);
+    if(!raw) return clone(DEFAULTS);
     const p = JSON.parse(raw);
-    return Object.assign(structuredClone(DEFAULTS), p,
-      {cfg:Object.assign(structuredClone(DEFAULTS.cfg), p.cfg||{})});
-  }catch(e){ return structuredClone(DEFAULTS); }
+    return Object.assign(clone(DEFAULTS), p,
+      {cfg:Object.assign(clone(DEFAULTS.cfg), p.cfg||{})});
+  }catch(e){ return clone(DEFAULTS); }
 }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 
@@ -512,6 +649,79 @@ function checkUnlock(){
       if(p.seen>=40 && p.pct>=0.8){ S.unlocked = t+1; }
     }
   }
+}
+
+/* ============================================================
+   DRAPEAUX
+   Windows ne possède pas de glyphes emoji pour les drapeaux : il affiche
+   les deux lettres du code pays. On remplace donc chaque emoji de drapeau
+   par une image. Les emoji de drapeaux SONT les codes ISO 3166-1 alpha-2,
+   la conversion est donc directe et sans table de correspondance.
+   ============================================================ */
+const FLAG_RE  = /[\u{1F1E6}-\u{1F1FF}]{2}/gu;
+const FLAG_HAS = /[\u{1F1E6}-\u{1F1FF}]{2}/u;
+
+function isoFromEmoji(s){
+  const cp = [...s].map(ch => ch.codePointAt(0) - 0x1F1E6);
+  return String.fromCharCode(97 + cp[0], 97 + cp[1]);
+}
+/* Repli visible partout : emoji (vrai drapeau sur macOS / Android,
+   paire de lettres sur Windows) suivi du code pays. */
+function flagFallback(iso, original){
+  const span = document.createElement("span");
+  span.className = "flagfb";
+  span.appendChild(document.createTextNode(original));
+  const cc = document.createElement("span");
+  cc.className = "cc";
+  cc.textContent = iso.toUpperCase();
+  span.appendChild(cc);
+  span.title = "Image de drapeau indisponible (hors ligne ou bloquée)";
+  return span;
+}
+function makeFlag(iso, original){
+  /* Pas de réseau du tout : on ne tente même pas la requête. */
+  if(typeof navigator !== "undefined" && navigator.onLine === false)
+    return flagFallback(iso, original);
+  const img = document.createElement("img");
+  img.className = "flag";
+  img.loading = "lazy";
+  img.decoding = "async";
+  img.referrerPolicy = "no-referrer";
+  img.alt = "";
+  img.src = `https://flagcdn.com/w80/${iso}.png`;
+  img.srcset = `https://flagcdn.com/w160/${iso}.png 2x`;
+  img.onerror = function(){
+    if(this.parentNode) this.parentNode.replaceChild(flagFallback(iso, original), this);
+  };
+  return img;
+}
+function flagify(root){
+  if(!root || !root.ownerDocument) return;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(n){
+      if(!n.nodeValue || !FLAG_HAS.test(n.nodeValue)) return NodeFilter.FILTER_REJECT;
+      const p = n.parentNode && n.parentNode.nodeName;
+      if(p==="TEXTAREA" || p==="INPUT" || p==="SCRIPT" || p==="STYLE" || p==="OPTION")
+        return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+  const nodes = []; let n;
+  while((n = walker.nextNode())) nodes.push(n);
+  nodes.forEach(node=>{
+    const txt = node.nodeValue;
+    const frag = document.createDocumentFragment();
+    let last = 0;
+    FLAG_RE.lastIndex = 0;
+    let m;
+    while((m = FLAG_RE.exec(txt)) !== null){
+      if(m.index > last) frag.appendChild(document.createTextNode(txt.slice(last, m.index)));
+      frag.appendChild(makeFlag(isoFromEmoji(m[0]), m[0]));
+      last = m.index + m[0].length;
+    }
+    if(last < txt.length) frag.appendChild(document.createTextNode(txt.slice(last)));
+    node.parentNode.replaceChild(frag, node);
+  });
 }
 
 /* ============================================================
@@ -685,7 +895,9 @@ function makeQuestion(){
       html:`<div class="qtext">Tu lis ce texte sur un panneau. Où es-tu ?</div>
             <div class="qbig">${target.x}</div>`,
       options: opts, answer: target.n,
-      explain:`<b>${target.n}</b> — ${target.s}. ${target.c}`
+      explain:`<b>${target.f} ${target.n}</b> — ${target.s}<br>
+        <b>Ce qui le trahit :</b> ${XT[target.n] || target.c}<br>
+        <span style="color:var(--dim)">Sur place : ${target.c}</span>`
     };
   }
 
@@ -757,6 +969,7 @@ function nextQuestion(){
   document.getElementById("progBar").style.width = ((idx-1)/S.cfg.len*100) + "%";
   document.getElementById("qtype").textContent = Q.label;
   document.getElementById("qcontent").innerHTML = Q.html;
+  flagify(document.getElementById("qcontent"));
   document.getElementById("feedback").classList.add("hidden");
   document.getElementById("next").classList.add("hidden");
 
@@ -768,6 +981,7 @@ function nextQuestion(){
     b.onclick = ()=>answer(o);
     box.appendChild(b);
   });
+  flagify(box);
 
   const tw = document.getElementById("timerWrap");
   if(S.cfg.time>0){
@@ -804,6 +1018,7 @@ function answer(choice){
   const fb = document.getElementById("feedback");
   fb.innerHTML = (choice===null ? "<b>Temps écoulé.</b> " : ok ? "" : "") + Q.explain;
   fb.classList.remove("hidden");
+  flagify(fb);
   document.getElementById("qscore").textContent = `${score} pt`;
   document.getElementById("next").classList.remove("hidden");
   document.getElementById("next").textContent = idx>=S.cfg.len ? "Voir le résultat" : "Suivant";
@@ -840,6 +1055,7 @@ function finish(){
       `${e.flag} ${e.subject} | ${e.q} | attendu: ${e.good} | donné: ${e.mine||"—"} | ${e.clue}`
     ).join("\n");
   }
+  flagify(document.getElementById("results"));
   show("results");
 }
 
@@ -897,9 +1113,11 @@ function renderFiches(){
         <div>Domaine · <b>${c.t}</b></div>
         <div>Indicatif · <b>${c.p}</b></div>
       </div>
+      <div class="cclue"><b style="color:var(--txt);font-style:normal">Le texte trahit :</b> ${XT[c.n]||"—"}</div>
       <div class="cclue">${c.c}</div>`;
     box.appendChild(d);
   });
+  flagify(box);
 }
 ["search","fRegion","fDrive","fTier"].forEach(id=>{
   document.getElementById(id).addEventListener("input", renderFiches);
@@ -1028,6 +1246,7 @@ function renderDuo(){
       delete S.peers[b.dataset.del]; if(duoSel===b.dataset.del) duoSel=null; save(); renderDuo(); });
   }
 
+  flagify(pl);
   const body = document.getElementById("duoBody");
   if(!duoSel || !S.peers[duoSel]){ body.innerHTML = ""; return; }
   const P = S.peers[duoSel];
@@ -1093,6 +1312,7 @@ function renderDuo(){
     ${commonWeakC.length?`<label class="lbl" style="margin-top:18px">Pays</label>${sideBySide(commonWeakC, P.name)}`:""}
     ${(!commonWeakDom.length && !commonWeakC.length)?'<div class="empty">Aucune lacune commune détectée — ou pas encore assez de données partagées.</div>':""}
   </div>`;
+  flagify(body);
 }
 
 document.getElementById("saveName").onclick = ()=>{
@@ -1350,7 +1570,142 @@ const THEMES = [
 }
 ];
 
-let themeSel = "cyr";
+/* ---- Thèmes non linguistiques : les fondamentaux d'un round ---- */
+THEMES.push(
+{
+  id:"ordre", name:"Ordre de lecture",
+  intro:"La méthode, avant les connaissances. La plupart des gros ratés de débutant viennent d'un saut direct au « ça ressemble à… ». Cet ordre-là ne se saute pas.",
+  method:[
+    "<b>1. Hémisphère.</b> Soleil au sud à midi → hémisphère nord. Au nord → hémisphère sud. Ce seul test élimine la moitié de la planète.",
+    "<b>2. Côté de conduite.</b> Élimine environ deux tiers du reste. Regarde le sens des voitures garées, ou de quel côté la voiture Google roule.",
+    "<b>3. Écriture, puis langue.</b> D'abord l'alphabet, ensuite les lettres exclusives (voir les fiches Cyrillique et Latin).",
+    "<b>4. Métas physiques.</b> Poteaux, bollards, marquages, glissières. C'est ce qui reste quand il n'y a aucun texte.",
+    "<b>5. Végétation et relief.</b> Confirme ou infirme, ne décide jamais seul.",
+    "<b>6. Indice régional.</b> Numéro de route, nom de ville, indicatif téléphonique, plaque de rue. C'est là que se gagnent les points.",
+    "<b>Règle d'or :</b> deux indices indépendants qui convergent avant de plonker. Un seul indice ment souvent."
+  ],
+  cols:["Étape","Ce que tu cherches","Ce que ça élimine"],
+  rows:[
+    ["1. Hémisphère","Position du soleil, saison de la végétation","La moitié du globe"],
+    ["2. Conduite","Sens de circulation, position du volant","Les deux tiers du reste"],
+    ["3. Écriture","Alphabet puis lettres exclusives","Tout sauf quelques pays"],
+    ["4. Métas","Poteaux, bollards, marquages","Départage les voisins"],
+    ["5. Nature","Végétation, relief, sol","Confirme seulement"],
+    ["6. Région","Numéro de route, toponyme, indicatif","Affine à l'intérieur du pays"]
+  ]
+},
+{
+  id:"soleil", name:"Soleil et hémisphère",
+  intro:"L'indice le plus universel du jeu : il fonctionne même sur une route de campagne totalement vide, sans le moindre panneau.",
+  method:[
+    "<b>Ombres pointant vers le nord</b> (soleil au sud) → hémisphère nord. <b>Ombres vers le sud</b> → hémisphère sud.",
+    "Pour t'orienter, sers-toi de la boussole de la mini-carte : elle indique le nord de la vue.",
+    "<b>Soleil très haut, ombres courtes</b> → proche de l'équateur, ou plein été à latitude moyenne.",
+    "<b>Soleil bas toute la journée, ombres longues et étirées</b> → haute latitude (Scandinavie, Canada, Patagonie, Russie du Nord).",
+    "<b>Végétation luxuriante + soleil bas</b> est contradictoire : méfie-toi, tu es probablement en hiver à latitude moyenne.",
+    "Piège fréquent : la couverture de l'hémisphère sud est souvent prise en été austral. Une scène verdoyante ne signifie donc pas « Europe »."
+  ],
+  cols:["Observation","Déduction","Exemples typiques"],
+  rows:[
+    ["Ombres vers le nord","Hémisphère nord","Europe, Amérique du Nord, Russie, Japon"],
+    ["Ombres vers le sud","Hémisphère sud","Australie, Afrique du Sud, Argentine, Chili, NZ"],
+    ["Ombres quasi nulles à midi","Zone intertropicale","Indonésie, Kenya, Colombie, Brésil équatorial"],
+    ["Ombres très longues en pleine journée","Haute latitude","Norvège, Finlande, Islande, Canada, Patagonie"],
+    ["Neige au sol","Hiver, latitude haute ou altitude","Russie, Canada, Scandinavie, Andes, Japon du Nord"]
+  ]
+},
+{
+  id:"marquages", name:"Marquages au sol",
+  intro:"Gratuit : il y en a sous les roues à chaque round. La couleur de la ligne centrale est l'un des filtres les plus rapides du jeu.",
+  method:[
+    "<b>Ligne centrale jaune</b> → Amérique du Nord (États-Unis, Canada), une grande partie de l'Amérique latine, et — piège classique — la <b>Norvège</b>.",
+    "<b>Ligne centrale blanche</b> → la majorité de l'Europe, l'Asie, l'Océanie, l'Afrique australe.",
+    "<b>Norvège ligne jaune contre Suède ligne blanche</b> : c'est le départage le plus rapide entre les deux.",
+    "<b>Lignes de bord jaunes</b> → Afrique du Sud (et voisins australs), ainsi que l'Irlande.",
+    "<b>Irlande bord jaune contre Royaume-Uni bord blanc</b> : utile quand la langue ne t'aide pas.",
+    "<b>Aucun marquage du tout</b> sur une route goudronnée → pays à faibles moyens, ou route très secondaire.",
+    "Regarde aussi la <b>longueur des tirets</b> : très courts en Pologne, longs en Indonésie. C'est plus fin, mais ça se voit."
+  ],
+  cols:["Marquage","Pays / région","Remarque"],
+  rows:[
+    ["Ligne centrale jaune","🇺🇸 🇨🇦 🇲🇽 et Amérique latine","Réflexe « Amériques » — mais vérifie la Norvège"],
+    ["Ligne centrale jaune","🇳🇴 Norvège","Le grand piège européen"],
+    ["Ligne centrale blanche","Europe, Asie, Océanie","Le cas le plus courant"],
+    ["Bords jaunes","🇿🇦 Afrique du Sud","Souvent doublé de poteaux béton en H"],
+    ["Bords jaunes discontinus","🇮🇪 Irlande","Sépare l'Irlande du Royaume-Uni"],
+    ["Blanc seul, jaune = interdiction","🇯🇵 Japon","Le jaune y signale l'interdiction de dépasser"],
+    ["Tirets très courts","🇵🇱 Pologne","Combiné aux bollards à réflecteur rouge"],
+    ["Aucun marquage","Afrique, Asie du Sud, routes rurales","Indice de niveau d'infrastructure"]
+  ]
+},
+{
+  id:"route", name:"Numéros de route et bornes",
+  intro:"Le meilleur indice régional du jeu, et il est fait pour le mode Moving : tu peux littéralement rouler jusqu'à lui. Un numéro de route te place souvent à moins de 100 km.",
+  method:[
+    "<b>Priorité absolue en Moving.</b> Si tu ne sais pas où tu es, roule vers le prochain panneau numéroté plutôt que d'explorer au hasard.",
+    "Les <b>préfixes</b> encodent souvent la région : au Brésil, « SP- » = São Paulo, « MG- » = Minas Gerais, « BA- » = Bahia. En Allemagne, « B » = Bundesstraße, « L » et « K » sont régionales.",
+    "Les <b>bornes kilométriques</b> donnent la distance depuis une origine : un petit nombre te place près du début de la route, un grand nombre loin.",
+    "Les <b>numéros de sortie d'autoroute</b> fonctionnent pareil et sont souvent séquentiels d'ouest en est ou du sud au nord.",
+    "En France, le <b>numéro de département</b> apparaît sur les routes « D » et sur beaucoup de panneaux : c'est un raccourci direct.",
+    "Aux États-Unis, le <b>bouclier d'autoroute</b> (highway shield) diffère par État — c'est un meta à part entière, à travailler sur Geolearnr.",
+    "Attention : un numéro seul ne suffit pas si tu ne connais pas le pays. Fais toujours l'étape « pays » d'abord."
+  ],
+  cols:["Type d'indice","Ce que ça donne","Où le chercher"],
+  rows:[
+    ["Préfixe régional (SP-, MG-, B, D)","La région directement","Panneaux de route, bornes"],
+    ["Borne kilométrique","Distance depuis l'origine de la route","Bord de route, tous les 1 à 10 km"],
+    ["Bouclier d'autoroute","L'État (États-Unis)","Panneaux de confirmation d'itinéraire"],
+    ["Nom de ville sur panneau","Localisation directe si tu connais le pays","Carrefours, entrées de localité"],
+    ["Numéro de sortie","Progression le long de l'axe","Autoroutes"],
+    ["Indicatif téléphonique sur devanture","La région","Commerces, panneaux publicitaires"],
+    ["Code postal","La région","Devantures, panneaux d'entreprise"]
+  ]
+},
+{
+  id:"google", name:"Couverture Google",
+  intro:"Quand il n'y a ni texte, ni bollard, ni poteau exploitable, il reste toujours la voiture qui a pris la photo. C'est le meta le plus rentable du jeu, et le moins intuitif.",
+  method:[
+    "<b>Regarde d'abord la qualité d'image.</b> Une image très floue et peu définie indique une génération de caméra ancienne, ce qui restreint fortement la liste des pays.",
+    "<b>Cherche la voiture elle-même</b> : bout de capot, rétroviseur, barre de toit, antenne, rack, dans le bas de l'image ou dans les virages.",
+    "<b>Repère la saleté et les rayures sur l'objectif</b> : elles restent identiques sur toute une campagne de prise de vue, donc sur tout un pays ou une région.",
+    "<b>Note le flou</b> : certains pays ont un floutage spécifique appliqué à la voiture ou à des éléments récurrents.",
+    "<b>Le rig</b> (le mât de caméra) et sa forme varient selon les campagnes.",
+    "<b>Important :</b> ce thème ne s'apprend pas dans un tableau, il s'apprend en images. C'est exactement à ça que sert <a href=\"https://learnablemeta.com/\" target=\"_blank\" rel=\"noopener\">Learnable Meta</a>, et la catégorie <a href=\"https://geometas.com/metas/categories/google_car/\" target=\"_blank\" rel=\"noopener\">Google Car de Geometas</a> (58 fiches avec photos)."
+  ],
+  cols:["Quoi regarder","Ce que ça t'apprend","Où c'est visible"],
+  rows:[
+    ["Netteté générale de l'image","La génération de caméra, donc un groupe de pays","Partout"],
+    ["Bout de capot / pare-chocs","Le modèle de voiture, propre à une campagne","Bas de l'image, en regardant vers le sol"],
+    ["Barre de toit, rack, antenne","La campagne de prise de vue","Haut de l'image, en levant les yeux"],
+    ["Saleté, gouttes, rayures sur l'objectif","Constant sur toute une campagne","Zones floues récurrentes de l'image"],
+    ["Floutage particulier","Certains pays ont un traitement spécifique","Sur la voiture ou des objets récurrents"],
+    ["Forme du rig / mât","La campagne","Vers le haut, au centre"]
+  ]
+},
+{
+  id:"physique", name:"Bollards, poteaux, glissières",
+  intro:"Ce sont les trois métas les plus puissants d'Europe et d'Amérique latine. Mais autant être franc : ça ne s'apprend pas dans un tableau de texte. Un bollard, il faut le VOIR. Ce thème te donne donc la méthode d'observation et t'envoie aux bons outils.",
+  method:[
+    "<b>Pour un bollard, observe dans cet ordre :</b> forme générale (plat, rond, triangulaire), couleur du corps, couleur et forme du sommet, puis forme et couleur du réflecteur (rond, rectangulaire, bande).",
+    "<b>Pour un poteau électrique :</b> matériau (bois, béton, métal), section (rond, carré, en H, treillis), nombre et disposition des isolateurs, présence de trous dans le béton.",
+    "<b>Pour une glissière :</b> profil de la barrière, forme des supports, présence de câbles.",
+    "<b>Le réflexe qui compte :</b> ces éléments sont présents sur presque tous les rounds ruraux, et le rural représente l'essentiel de la couverture. Prends l'habitude de les regarder même quand tu as déjà une réponse.",
+    "<b>Où les apprendre en images :</b> <a href=\"https://geometas.com/metas/categories/bollards/\" target=\"_blank\" rel=\"noopener\">Bollards sur Geometas</a> (46 fiches), <a href=\"https://geometas.com/metas/categories/poles/\" target=\"_blank\" rel=\"noopener\">Poteaux</a> (51 fiches), <a href=\"https://www.geolearnr.com/quiz-info/bollards\" target=\"_blank\" rel=\"noopener\">quiz bollards de Geolearnr</a>, et <a href=\"https://geohints.com/\" target=\"_blank\" rel=\"noopener\">GeoHints</a> pour la recherche par type d'indice.",
+    "Ne cherche pas à tout mémoriser d'un coup : commence par l'Europe de l'Ouest et de l'Est, qui concentrent l'essentiel des bollards distinctifs."
+  ],
+  cols:["Élément","Ce qu'il faut noter","Valeur"],
+  rows:[
+    ["Bollard","Forme, couleur du sommet, forme du réflecteur","Très élevée en Europe"],
+    ["Poteau électrique","Matériau, section, isolateurs, trous","Très élevée en zone rurale"],
+    ["Glissière de sécurité","Profil, supports, câbles","Moyenne, utile en confirmation"],
+    ["Panneau de direction","Couleur de fond, police, forme des flèches","Élevée"],
+    ["Chevrons de virage","Couleur, forme, orientation","Moyenne"],
+    ["Borne d'incendie, boîte aux lettres","Modèle national","Ponctuelle mais décisive"]
+  ]
+}
+);
+
+let themeSel = "ordre";
 function renderThemes(){
   const tc = document.getElementById("themeChips");
   tc.innerHTML = "";
@@ -1376,6 +1731,7 @@ function renderThemes(){
         <tbody>${t.rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join("")}</tr>`).join("")}</tbody>
       </table>
     </div>`;
+  flagify(document.getElementById("themeBody"));
 }
 
 /* ============================================================
@@ -1439,9 +1795,11 @@ function renderStats(){
   const cyrWeak = cyr.filter(n=>{ const s=S.stats[n]; return s && s.seen>=2 && s.ok/s.seen<0.6; });
   if(cyrWeak.length>=2)
     bits.push(`Tu confonds plusieurs pays cyrilliques (${cyrWeak.join(", ")}). Va lire la fiche thématique <b>Cyrillique</b> dans l'onglet Thèmes.`);
+  flagify(document.getElementById("weakList"));
   fb.innerHTML = bits.length
     ? bits.map(b=>`<div class="weak" style="display:block">${b}</div>`).join("")
     : '<div class="sub">Rien de préoccupant pour l\'instant — ou pas encore assez de données.</div>';
+  flagify(fb);
 }
 
 function fillBars(id, rows, empty){
@@ -1461,7 +1819,7 @@ function fillBars(id, rows, empty){
 }
 document.getElementById("reset").onclick = ()=>{
   if(confirm("Effacer toute ta progression ?")){
-    S = structuredClone(DEFAULTS); save(); renderHome(); renderStats();
+    S = clone(DEFAULTS); save(); renderHome(); renderStats();
   }
 };
 
