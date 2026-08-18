@@ -64,6 +64,9 @@
   .feedback{margin-top:16px;padding:14px 16px;border-radius:11px;font-size:13.5px;
     background:var(--panel2);border-left:3px solid var(--accent2);color:var(--dim)}
   .feedback b{color:var(--txt)}
+  .famtips{margin-top:12px;padding-top:11px;border-top:1px solid var(--line)}
+  .famtips ul{margin:7px 0 0;padding-left:18px}
+  .famtips li{margin-bottom:5px;line-height:1.45}
   /* fiches */
   .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
   select,input[type=text]{background:var(--panel2);border:1px solid var(--line);color:var(--txt);
@@ -190,11 +193,14 @@
 
   <div class="card">
     <h2>Types de questions</h2>
-    <p class="hint">Sélectionne au moins un type. Le mélange des cinq est le plus formateur.</p>
+    <p class="hint">Sélectionne au moins un type. Le mode <b>Sosies</b> ne tient pas compte des paliers : il compare toujours les pays d'une même famille entre eux, c'est tout son intérêt.</p>
     <div class="chips" id="typeChips"></div>
 
     <label class="lbl">Chrono par question</label>
     <div class="chips" id="timeChips"></div>
+
+    <label class="lbl">Famille ciblée (mode Sosies)</label>
+    <div class="chips" id="famChips"></div>
 
     <label class="lbl">Nombre de propositions</label>
     <div class="chips" id="optChips"></div>
@@ -590,16 +596,225 @@ const XT = {
 };
 
 /* ============================================================
+   SOSIES — familles de langues qui se ressemblent.
+   Plusieurs échantillons par pays : l'objectif est d'apprendre la langue,
+   pas de mémoriser une chaîne de caractères.
+   ============================================================ */
+const SAMPLES = {
+/* --- cyrillique --- */
+"Russie":["улица Ленина","проспект Мира","Октябрьская улица","ул. Гагарина","Советская ул."],
+"Ukraine":["вулиця Шевченка","проспект Свободи","вул. Соборна","вулиця Незалежності","Головна вул."],
+"Bulgarie":["ул. Васил Левски","бул. България","площад Свобода","ул. Христо Ботев","бул. Витоша"],
+"Serbie":["Улица Краља Петра","Булевар ослобођења","Трг републике","Његошева улица","Кнез Михаилова"],
+"Macédoine du Nord":["Улица Партизанска","Булевар Илинден","Плоштад Слобода","ул. Ѓорче Петров","Булевар Гоце Делчев"],
+"Kazakhstan":["Абай көшесі","Достық даңғылы","Тәуелсіздік көшесі","Жібек жолы","Республика алаңы"],
+"Kirghizistan":["Чүй проспектиси","Манас көчөсү","Ала-Тоо аянты","Ибраимов көчөсү","Жаш Гвардия"],
+"Mongolie":["Энхтайваны гудамж","Их тойруу","Сүхбаатарын талбай","Чингисийн өргөн чөлөө","Дэлгүүр"],
+/* --- nordiques --- */
+"Suède":["Storgatan","Kyrkvägen","Järnvägsgatan","Skolgatan","Västra Storgatan"],
+"Norvège":["Storgata","Kirkeveien","Sjøgata","Nedre Torggate","Fylkesvei 17"],
+"Danemark":["Hovedgaden","Kirkevej","Nørregade","Skovvej","Bygaden"],
+"Finlande":["Mannerheimintie","Kirkkokatu","Rautatienkatu","Puistokatu","Keskuskatu"],
+"Islande":["Laugavegur","Hafnarstræti","Skólavörðustígur","Austurvegur","Þingvallavegur"],
+"Îles Féroé":["Gongin","Niels Finsens gøta","Bakkavegur","Havnargøta","Oyggjarvegur"],
+"Groenland":["Aqqusinersuaq","Imaneq","Qullilerfik","Jens Kreutzmannip aqqutaa"],
+/* --- baltes --- */
+"Estonie":["Pikk tänav","Vabaduse puiestee","Jõe tänav","Kesk tänav","Sadama tee"],
+"Lettonie":["Brīvības iela","Rīgas iela","Skolas iela","Lielā iela","Krasta iela"],
+"Lituanie":["Gedimino prospektas","Vilniaus gatvė","Taikos gatvė","Šviesos g.","Laisvės alėja"],
+/* --- Europe centrale --- */
+"Pologne":["ul. Kościuszki","ul. Piłsudskiego","Rynek Główny","ul. Słoneczna","Plac Wolności"],
+"Tchéquie":["Náměstí Svobody","Husova ulice","Nádražní","Dlouhá třída","Příkop"],
+"Slovaquie":["Hlavná ulica","Námestie SNP","Štúrova ulica","Ľudová","Kollárovo námestie"],
+"Hongrie":["Kossuth Lajos utca","Fő tér","Petőfi Sándor utca","Rákóczi út","Szabadság tér"],
+"Roumanie":["Strada Mihai Eminescu","Bulevardul Unirii","Piața Victoriei","Str. Republicii","Calea Moșilor"],
+"Croatie":["Ulica kralja Tomislava","Trg bana Jelačića","Vukovarska ulica","Ilica","Šetalište"],
+"Slovénie":["Tržaška cesta","Prešernova cesta","Glavni trg","Cankarjeva ulica","Ljubljanska c."],
+"Albanie":["Rruga e Dibrës","Bulevardi Zogu i Parë","Sheshi Skënderbej","Rruga Myslym Shyri","Rruga e Kavajës"],
+/* --- germanique et Benelux --- */
+"Allemagne":["Hauptstraße","Bahnhofstraße","Am Markt","Kirchweg","Schulstraße"],
+"Autriche":["Hauptplatz","Landstraße","Bundesstraße B 1","Gemeindeamt","Kirchengasse"],
+"Suisse":["Bahnhofstrasse","Dorfstrasse","Kantonsstrasse","Gemeinde","Hauptstrasse"],
+"Pays-Bas":["Kerkstraat","Dorpsstraat","Molenweg","Rijksweg","Stationsplein"],
+"Belgique":["Chaussée de Bruxelles / Brusselsesteenweg","Rue de la Station / Stationsstraat","Grote Markt / Grand-Place","Steenweg op Gent"],
+"Luxembourg":["Rue de la Gare","Op der Gare","Gemeng","Stroossen","Rue de la Poste"],
+/* --- ibérique et Amérique latine --- */
+"Portugal":["Rua da Liberdade","Largo do Carmo","Travessa das Flores","Avenida da República","Praceta do Sol"],
+"Brésil":["Rua das Flores","Rua XV de Novembro","Rodovia BR-101","Praça da Matriz","Avenida Getúlio Vargas"],
+"Espagne":["Calle Mayor","Avenida de la Constitución","Plaza del Ayuntamiento","Carrer Major","Calle Real"],
+"Mexique":["Avenida Juárez","Calle Hidalgo","Carretera Federal 15","Colonia Centro","Calzada de Tlalpan"],
+"Argentine":["Avenida San Martín","Calle Belgrano","Ruta Nacional 40","Barrio Norte","Av. Rivadavia"],
+"Chili":["Avenida O'Higgins","Ruta 5 Sur","Calle Prat","Población Nueva","Av. Los Carrera"],
+"Pérou":["Jirón Lima","Avenida Grau","Carretera Central","Urbanización Los Pinos","Jr. Bolívar"],
+"Colombie":["Carrera 7","Calle 45","Diagonal 23","Transversal 8","Cra. 15 # 88-64"],
+"Uruguay":["Avenida 18 de Julio","Ruta 8","Calle Sarandí","Bulevar Artigas"],
+"Équateur":["Avenida Amazonas","Vía a Daule","Ciudadela Kennedy","Av. 9 de Octubre"],
+"Bolivie":["Calle Sucre","Avenida 6 de Agosto","Zona Sur","Av. Arce"],
+"Guatemala":["Calzada Roosevelt","6a Avenida Zona 10","Zona 1","Boulevard Liberación"],
+"Costa Rica":["Avenida Central","Ruta 27","Barrio Escalante","Calle 3"],
+"République dominicaine":["Calle Duarte","Avenida Independencia","Autopista Duarte","Av. 27 de Febrero"],
+"Porto Rico":["Calle Loíza","PR-52","Urbanización Villa Nevárez","Ave. Ponce de León"],
+"Panama":["Avenida Balboa","Calle 50","Corregimiento de Bella Vista","Vía Ricardo J. Alfaro"],
+/* --- écritures d'Asie du Sud et du Sud-Est --- */
+"Thaïlande":["ถนนสุขุมวิท","ซอย 5","ถนนพหลโยธิน","ร้านอาหาร","หมู่บ้าน"],
+"Laos":["ຖະໜົນ","ບ້ານ","ເມືອງ","ຮ້ານຂາຍເຄື່ອງ","ໂຮງຮຽນ"],
+"Cambodge":["ផ្លូវ","ភូមិ","សាលារៀន","ផ្សារ","ឃុំ"],
+"Inde":["मार्ग / Road","मुख्य सड़क","राष्ट्रीय राजमार्ग","विद्यालय / School","बाज़ार / Market"],
+"Népal":["सडक","गाउँपालिका","विद्यालय","वडा नं. ५","नगरपालिका"],
+"Bangladesh":["রোড","বাজার","বিদ্যালয়","গ্রাম","ইউনিয়ন"],
+"Sri Lanka":["පාර","ගම","පාසල","කඩේ","නගරය"],
+"Pakistan":["روڈ","بازار","سکول","گاؤں","چوک"],
+"Bhoutan":["ལམ་སྲོལ","གྲོང་གསེབ","སློབ་གྲྭ","ཁྲོམ"],
+/* --- CJK --- */
+"Japon":["国道1号線","止まれ","駐車場","〒100-0001","中央町 ちゅうおう"],
+"Chine":["人民路","解放路","停车场","村委会","国道 G106"],
+"Taïwan":["中山路","停車場","鄉公所","台1線","中華路"],
+"Hong Kong":["彌敦道 Nathan Road","巴士站 Bus Stop","停車場 Car Park","皇后大道 Queen's Road"],
+"Macao":["南灣大馬路 Avenida da Praia Grande","停車場 Estacionamento","議事亭前地 Largo do Senado","友誼大馬路 Avenida da Amizade"],
+"Corée du Sud":["중앙로","주차장","버스정류장","삼성동","고속도로"],
+/* --- arabe et hébreu --- */
+"Égypte":["شارع الهرم","ميدان التحرير","كوبري 6 أكتوبر","شارع النيل","مدرسة ابتدائية"],
+"Tunisie":["شارع الحبيب بورقيبة / Avenue Habib Bourguiba","نهج مرسيليا","ساحة الاستقلال / Place de l'Indépendance","Rue de Marseille","شارع محمد الخامس"],
+"Liban":["شارع الحمرا / Rue Hamra","ساحة ساسين / Place Sassine","طريق الشام","Rue Gouraud","شارع بلس"],
+"Jordanie":["شارع المدينة المنورة","الدوار الأول","طريق المطار","شارع الملك حسين","شارع الرينبو / Rainbow Street"],
+"Émirats arabes unis":["شارع الشيخ زايد / Sheikh Zayed Road","شارع خليفة","طريق الاتحاد","شارع المطار / Airport Road","كورنيش أبوظبي"],
+"Qatar":["شارع الكورنيش / Corniche Street","طريق سلوى","شارع الوكرة","شارع الريان"],
+"Palestine":["شارع القدس","بلدية نابلس","شارع النهضة","شارع الجامعة","مخيم"],
+"Israël":["רחוב הרצל","שדרות רוטשילד","כיכר","בית ספר","רחוב הראשי"]
+};
+
+const FAMILIES = [
+{
+  id:"f_cyr", name:"Cyrillique",
+  members:["Russie","Ukraine","Bulgarie","Serbie","Macédoine du Nord","Kazakhstan","Kirghizistan","Mongolie"],
+  tips:[
+    "<b>і</b> présent → ukrainien ou kazakh. Le russe n'a pas de і.",
+    "<b>ї є ґ</b> → ukrainien, exclusivement. Et « вулиця » au lieu de « улица ».",
+    "<b>ъ au milieu d'un mot, sans ы ni э</b> → bulgare (ex. « България »).",
+    "<b>ј љ њ ћ ђ џ</b> → serbe. <b>ѓ ќ ѕ</b> → macédonien.",
+    "<b>ә ғ қ ң ұ</b> + « көшесі » → kazakh. <b>ө ү sans қ</b> + « көчөсү » → kirghize.",
+    "<b>« гудамж »</b> et des mots très longs en -ын / -ийн → mongol.",
+    "Aucun de ces signes, avec « улица » ou « ул. » → russe."
+  ]
+},
+{
+  id:"f_nord", name:"Nordiques",
+  members:["Suède","Norvège","Danemark","Finlande","Islande","Îles Féroé","Groenland"],
+  tips:[
+    "Le mot pour rue ou route décide presque toujours : <b>-gatan / -vägen</b> → suédois.",
+    "<b>-gata / -veien / -vei</b> → norvégien. <b>-gade / -vej</b> → danois. Une lettre sépare les deux.",
+    "<b>-katu / -tie</b> et des doubles voyelles → finnois.",
+    "<b>-vegur / -stræti</b>, plus þ et ð → islandais. <b>-gøta</b> sans þ → féroïen.",
+    "Mots très longs avec des q doublés et des terminaisons en -aq / -up → groenlandais.",
+    "Piège classique : Norvège et Danemark partagent æ ø å. Ne te fie qu'au suffixe."
+  ]
+},
+{
+  id:"f_balt", name:"Baltes",
+  members:["Estonie","Lettonie","Lituanie"],
+  tips:[
+    "<b>« tänav »</b> + õ ä ö ü → estonien. Le <b>õ</b> est décisif.",
+    "<b>« iela »</b> + macrons ā ē ī ū → letton.",
+    "<b>« gatvė »</b> ou « prospektas », terminaisons -as / -is → lituanien.",
+    "Astuce : trois mots pour « rue », trois pays. C'est le plus rapide à mémoriser du jeu."
+  ]
+},
+{
+  id:"f_centre", name:"Europe centrale",
+  members:["Pologne","Tchéquie","Slovaquie","Hongrie","Roumanie","Croatie","Slovénie","Albanie"],
+  tips:[
+    "<b>ł ą ż ś</b> + « ul. » → polonais.",
+    "<b>ř ě ů</b> + « náměstí » (avec ě) → tchèque.",
+    "<b>ľ ô</b> + « námestie » (sans ě) → slovaque. Le couple náměstí / námestie sépare les deux.",
+    "<b>ő ű</b> + « utca » ou « tér » placés après le nom → hongrois.",
+    "<b>ș ț ă</b> + « strada » ou « piața » → roumain.",
+    "<b>č ć đ</b> + « ulica » ou « trg » → croate. <b>č š ž sans ć</b> + « cesta » → slovène.",
+    "<b>ë</b> + « Rruga » avec deux R → albanais."
+  ]
+},
+{
+  id:"f_germ", name:"Germanique et Benelux",
+  members:["Allemagne","Autriche","Suisse","Pays-Bas","Belgique","Luxembourg"],
+  tips:[
+    "<b>« strasse » avec deux s et jamais de ß</b> → Suisse. C'est le tell le plus net du groupe.",
+    "<b>ß présent</b> → Allemagne ou Autriche. L'Autriche utilise le ß elle aussi, ne t'arrête pas là.",
+    "<b>« Hauptplatz », « Gasse », « Gemeindeamt »</b> penchent vers l'Autriche ; <b>« Hauptstraße », « Weg »</b> vers l'Allemagne. C'est une tendance, pas une preuve : confirme avec les plaques.",
+    "<b>« straat » collé, « -weg », « Rijksweg »</b> → Pays-Bas.",
+    "<b>Deux langues sur le même panneau</b> (français et néerlandais) → Belgique, quasi certain.",
+    "<b>Français mélangé à du luxembourgeois</b> (« Op der », « Stroossen ») → Luxembourg."
+  ]
+},
+{
+  id:"f_iber", name:"Ibérique et Amérique latine",
+  members:["Portugal","Brésil","Espagne","Mexique","Argentine","Chili","Pérou","Colombie","Uruguay",
+           "Équateur","Bolivie","Guatemala","Costa Rica","République dominicaine","Porto Rico","Panama"],
+  tips:[
+    "D'abord la langue : <b>« Rua », « Largo », « Travessa »</b> → portugais. <b>« Calle », « Avenida »</b> → espagnol.",
+    "Portugais : <b>« Rodovia », « BR- », « SP- », « Praça da Matriz »</b> → Brésil. <b>« Largo », « Travessa », « Praceta »</b> → Portugal.",
+    "<b>« Carrera », « Diagonal », « Transversal »</b> + adressage numéroté → Colombie.",
+    "<b>« Jirón » ou « Jr. »</b> → Pérou, presque exclusif.",
+    "<b>« Zona » numérotée</b> → Guatemala. <b>« Colonia »</b> → Mexique. <b>« Corregimiento »</b> → Panama.",
+    "<b>« Ruta Nacional »</b> → Argentine. <b>« Ruta 5 »</b> → Chili. <b>« PR- »</b> → Porto Rico. <b>« Ciudadela »</b> → Équateur.",
+    "<b>Dates comme noms de rue</b> (18 de Julio, 6 de Agosto) → Uruguay et Bolivie surtout.",
+    "Si rien ne ressort : le texte ne suffira pas. Passe aux plaques, aux bollards et au décor."
+  ]
+},
+{
+  id:"f_asie", name:"Écritures d'Asie du Sud et du Sud-Est",
+  members:["Thaïlande","Laos","Cambodge","Inde","Népal","Bangladesh","Sri Lanka","Pakistan","Bhoutan"],
+  tips:[
+    "<b>Barre horizontale continue en haut, lettres anguleuses</b> → devanagari : Inde ou Népal.",
+    "Inde ou Népal : l'Inde est presque toujours <b>bilingue avec l'anglais</b>, le Népal écrit en devanagari seul.",
+    "<b>Barre en haut mais formes plus triangulaires et arrondies en bas</b> → bengali : Bangladesh.",
+    "<b>Boucles rondes, aucune barre</b> → singhalais : Sri Lanka.",
+    "<b>Crochets et boucles avec des signes au-dessus de la ligne</b> → thaï.",
+    "<b>Comme le thaï mais plus rond, plus simple, moins de signes</b> → lao.",
+    "<b>Anguleux, dense, avec des pointes vers le haut</b> → khmer : Cambodge.",
+    "<b>Écriture qui part en diagonale, calligraphique</b> → ourdou nastaliq : Pakistan. L'arabe reste horizontal.",
+    "<b>Lettres empilées verticalement sous une barre</b> → tibétain : Bhoutan."
+  ]
+},
+{
+  id:"f_cjk", name:"Chinois, japonais, coréen",
+  members:["Japon","Chine","Taïwan","Hong Kong","Macao","Corée du Sud"],
+  tips:[
+    "<b>Des kana</b> (ひらがな arrondis, カタカナ anguleux) mêlés aux caractères → Japon. Aucun autre territoire n'en a.",
+    "<b>Hangeul</b> : blocs faits de cercles et de rectangles bien séparés → Corée du Sud.",
+    "<b>Caractères simplifiés</b> (车 门 国) + conduite à droite → Chine continentale.",
+    "<b>Caractères traditionnels</b> (車 門 國) seuls + conduite à droite → Taïwan.",
+    "<b>Traditionnels + anglais</b>, conduite à gauche → Hong Kong.",
+    "<b>Traditionnels + portugais</b>, conduite à gauche → Macao. Le portugais est la signature.",
+    "Repère utile : 停车场 (simplifié) contre 停車場 (traditionnel) — le même mot, deux mondes."
+  ]
+},
+{
+  id:"f_ar", name:"Arabe et hébreu",
+  members:["Égypte","Tunisie","Liban","Jordanie","Émirats arabes unis","Qatar","Palestine","Israël"],
+  tips:[
+    "<b>Hébreu</b> (lettres carrées, pas de liaison) → Israël. Aucune confusion possible avec l'arabe.",
+    "L'arabe seul ne suffit jamais : <b>regarde la deuxième langue</b>.",
+    "<b>Arabe + français</b> → Tunisie ou Liban. Tunisie : oliviers, bâti blanc et bleu. Liban : montagnes, béton dense.",
+    "<b>Arabe + anglais, désert de sable, routes très larges</b> → Émirats ou Qatar.",
+    "<b>Arabe seul, sans autre langue</b> → Égypte ou Palestine. Égypte : brique rouge, densité extrême. Palestine : collines calcaires, réservoirs noirs sur les toits.",
+    "<b>Arabe + anglais, désert pierreux et pierre beige</b> → Jordanie.",
+    "Si l'écriture penche en diagonale, ce n'est pas de l'arabe mais de l'ourdou : Pakistan."
+  ]
+}
+];
+
+/* ============================================================
    ÉTAT & STOCKAGE
    ============================================================ */
 const KEY = "geo-trainer-v3";
 const DEFAULTS = {
   name:"Moi", stats:{}, kinds:{}, unlocked:1, peers:{},
-  cfg:{tier:1, types:["script","tld","flag","drive","sheet"], time:20, len:15, nopts:8}
+  cfg:{tier:1, types:["fam","script","tld","flag","drive","sheet"], time:20, len:15, nopts:8, fam:"all"}
 };
-/* Ordre figé : sert d'index dans les liens de partage. Ne jamais réordonner. */
+/* Ordre figé : sert d'index dans les liens de partage.
+   Ne jamais réordonner ni insérer — uniquement ajouter à la fin. */
 const KINDS = ["Écriture → pays","Domaine .xx → pays","Indicatif +xx → pays","Drapeau → pays",
-  "Côté de conduite","Pays → région","Pays → domaine","Pays → indicatif","Pays → écriture"];
+  "Côté de conduite","Pays → région","Pays → domaine","Pays → indicatif","Pays → écriture"]
+  .concat(FAMILIES.map(f => "Sosies · " + f.name));
 let S = load();
 
 function clone(o){ return JSON.parse(JSON.stringify(o)); }
@@ -748,6 +963,7 @@ document.querySelectorAll(".tabs button").forEach(b=>{
    ÉCRAN D'ACCUEIL
    ============================================================ */
 const TYPES = [
+  {id:"fam",    label:"Sosies — même famille"},
   {id:"script", label:"Écriture → pays"},
   {id:"tld",    label:"TLD / indicatif → pays"},
   {id:"flag",   label:"Drapeau → pays"},
@@ -797,6 +1013,16 @@ function renderHome(){
     b.textContent = o.l;
     b.onclick = ()=>{ S.cfg.time=o.v; save(); renderHome(); };
     mc.appendChild(b);
+  });
+
+  const fc = document.getElementById("famChips");
+  fc.innerHTML = "";
+  [{id:"all",name:"Toutes les familles"}].concat(FAMILIES).forEach(f=>{
+    const b = document.createElement("button");
+    b.className = "chip" + (S.cfg.fam===f.id?" on":"");
+    b.textContent = f.name + (f.members?` · ${f.members.length}`:"");
+    b.onclick = ()=>{ S.cfg.fam=f.id; save(); renderHome(); };
+    fc.appendChild(b);
   });
 
   const oc = document.getElementById("optChips");
@@ -863,8 +1089,42 @@ function weightedTarget(){
 
 function makeQuestion(){
   const type = pick(S.cfg.types);
-  const target = weightedTarget();
   const N = nOpts();
+
+  /* --- Sosies : toutes les propositions viennent de la même famille --- */
+  if(type === "fam"){
+    const avail = S.cfg.fam === "all" ? FAMILIES : FAMILIES.filter(f => f.id === S.cfg.fam);
+    const F = pick(avail.length ? avail : FAMILIES);
+    const pool2 = F.members.map(n => DATA.find(c => c.n === n)).filter(Boolean);
+    /* pondération : les membres souvent ratés reviennent plus souvent */
+    const weighted = [];
+    pool2.forEach(c=>{
+      const s = S.stats[c.n];
+      let w = 1;
+      if(s && s.seen>0){ const r = s.ok/s.seen; w = r<0.5 ? 4 : r<0.8 ? 2 : 1; }
+      for(let i=0;i<w;i++) weighted.push(c);
+    });
+    const t = pick(weighted);
+    const bank = SAMPLES[t.n] || [t.x];
+    const sample = pick(bank);
+    /* options : toute la famille, ou un sous-ensemble contenant la bonne réponse */
+    let opts = pool2.map(c=>c.n);
+    if(opts.length > 10){
+      opts = [t.n, ...shuffle(opts.filter(n=>n!==t.n)).slice(0,9)];
+    }
+    return {
+      type, kind:"Sosies · " + F.name, target:t, label:"Sosies — " + F.name,
+      html:`<div class="qtext">Même famille. Lequel de ces pays ?</div>
+            <div class="qbig">${sample}</div>`,
+      options: shuffle(opts), answer: t.n,
+      explain:`<b>${t.f} ${t.n}</b> — ${t.s}<br>
+        <b>Ce qui le trahit :</b> ${XT[t.n] || t.c}
+        <div class="famtips"><b>Trancher dans « ${F.name} »</b>
+        <ul>${F.tips.map(x=>`<li>${x}</li>`).join("")}</ul></div>`
+    };
+  }
+
+  const target = weightedTarget();
 
   if(type==="drive"){
     return {
