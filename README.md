@@ -1,4 +1,4 @@
-# Script Identifier GeoGuessr
+# Geo Trainer
 
-🔗 [Open App](https://tgm-hub.github.io/script-identifier-
+🔗 [Open App](https://tgm-hub.github.io/geo-trainer
 💻 [GitHub Repository](https://github.com/TGM-hub)
